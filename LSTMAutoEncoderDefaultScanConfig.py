@@ -17,11 +17,21 @@ Config={
     "N_Samples":100, # Samples in a window
 
     "WeightInitialization":"'normal'",
+
+    "Optimizer": "'adam'",
+    "Loss": "'mean_squared_error'"  ,
+    "EncodeActivation": "'tanh'",
+    "DecodeActivation": "'tanh'"
+
 }
 
 # For Random Generation
 
-Config["N_Examples"]=1e5
+if "TestMode" in dir() and TestMode:
+    Config["N_Examples"]=1e6
+else:
+    Config["N_Examples"]=1e5
+
 Config["FractionTest"]=0.1
 Config["N_Inputs"]=10
 
@@ -43,20 +53,30 @@ Config["f_range"]=[1,5]         # Frequency Range ( f * N_Patterns = mean Patter
 Config["s_range"]=0.05           # Additional Noise for pattern
 
 # Network Architecture
-Params={ "Widths": [1*[16],1*[32],1*[64],1*[128], 1*[256],
-                    2*[16],2*[32],2*[64],2*[128], 2*[256],
-                    3*[16],3*[32],3*[64],3*[128], 3*[256],
-                    4*[16],4*[32],4*[64],4*[128], 4*[256],
-                    5*[16],5*[32],5*[64],5*[128], 5*[256]],
+def GenWidths(n):
+    return [[n],[n,n], [n,n/2], [n,2*n],
+            [n,n,n], [n,n,n/2], [n,n,2*n],
+            ]
 
-         "EncodeActivation": ["'sigmoid'","'relu'"],
-         "DecodeActivation": ["'sigmoid'","'softmax'"],
-         "Optimizer": ["'adam'"],
-         "Loss": ["'mean_squared_error'","'adadelta'"  ],
+WidthSet=[]
+for n in [2,4,8,16]:
+    WidthSet+=GenWidths(n)
 
-         }
+#Params={ "Widths": WidthSet}
 
+Params={ "Widths": [ [8], [9], [10], [11], [12], [13], [14], [15], [16],
+                     [10,10], [10,9], [10,8], [10, 7], [10, 6], [10, 5],
+                     [10,9], [10,4], [10, 3], [10, 2], [10, 1],
+                ]
 
+     }
+
+#[1*[16],1*[32],1*[64],1*[128],
+#2*[16],2*[32],2*[64],2*[128],
+#                    3*[16],3*[32],3*[64],3*[128],
+#                    4*[16],4*[32],4*[64],4*[128],
+#                    5*[16],5*[32],5*[64],5*[128], 
+#                ]
 PS=Permutator(Params)
 Combos=PS.Permutations()
 

@@ -52,20 +52,19 @@ def SplitTrainTest(X, FractionTest):
 
 
 
-def GeneratePatternSample( N_Examples, N_Inputs, N_Samples, FractionTest=.1,
+def GeneratePatternSample( N_Examples=0, N_Inputs=0, N_Samples=0, FractionTest=0,
                            N_Patterns=10, PatternSamples=5, NoiseSigma=0, 
                            A_range=1,f_range=1,s_range=.05,L_range=10, cache=True,
-                           verbose=True):
-
-
+                           verbose=True,filename="",MaxLoad=-1):
     if cache:
-        name="Pattern"
-        for n in [N_Examples, N_Inputs, N_Samples,
-                  N_Patterns, PatternSamples, NoiseSigma,
-                  A_range,f_range,s_range,L_range]:
-            name+= "_" + str(n).replace(" ","")
+        if filename=="":
+            name="Pattern"
+            for n in [N_Examples, N_Inputs, N_Samples,
+                      N_Patterns, PatternSamples, NoiseSigma,
+                      A_range,f_range,s_range,L_range]:
+                name+= "_" + str(n).replace(" ","")
         
-        filename="DataCache/"+name+".h5"
+            filename="DataCache/"+name+".h5"
        
         try:
             os.mkdir("DataCache")
@@ -75,7 +74,10 @@ def GeneratePatternSample( N_Examples, N_Inputs, N_Samples, FractionTest=.1,
         if os.path.isfile(filename): 
             print "Loading Data From ", filename
             f=h5py.File(filename)
-            X=f["CachedData"]["Sequence"]["Sequence"]
+            if MaxLoad>0:
+                X=f["CachedData"]["Sequence"]["Sequence"][:int(MaxLoad)]
+            else:
+                X=f["CachedData"]["Sequence"]["Sequence"]
             return SplitTrainTest(X,FractionTest) 
         
         class SequenceExample(IsDescription):
@@ -125,7 +127,6 @@ def GeneratePatternSample( N_Examples, N_Inputs, N_Samples, FractionTest=.1,
             f=[]
 
             for t in T:
-            #    print t
                 I.append(t[0])
                 A.append(t[1]["A"])
                 L.append(t[1]["L"])
@@ -245,7 +246,7 @@ class PatternGenerator(object):
     def GenerateParameters(self):
             self.PatternSample_N=self.Flat(self.N_Patterns,self.N_Samples)
             self.A=self.Flat(self.N_Patterns,self.A_range)
-            self.t=self.Flat(self.N_Patterns,self.f_range)
+            self.f=self.Flat(self.N_Patterns,self.f_range)
             self.s=self.Flat(self.N_Patterns,self.s_range)
             self.L=self.Flat(self.N_Patterns,self.L_range)
 
@@ -255,7 +256,7 @@ class PatternGenerator(object):
             self.Patterns.append(Pattern(self.N_Inputs,
                                          self.PatternSample_N[i],
                                          self.A[i],
-                                         self.t[i],
+                                         self.f[i],
                                          self.s[i],
                                          self.L[i]))
 
@@ -289,7 +290,7 @@ class WindowGenerator(object):
 
         self.FrequencyVector=(N_Patterns+1)*[0]
 
-        sum=0
+        sum=0.
         # Normalize Pattern Frequency        
         for i in xrange(0,N_Patterns):
             sum+=self.Patterns[i].f
@@ -306,6 +307,8 @@ class WindowGenerator(object):
 
         #Draw number of patterns
         N_P=int(np.random.poisson(self.PatternsPerWindow))
+        if N_P==0:
+            N_P=1
 
         ChoosenPatterns=[]
         #Generate Patterns

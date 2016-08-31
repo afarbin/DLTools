@@ -45,9 +45,9 @@ class LSTMAutoEncoder(ModelWrapper):
     def __init__(self, Name, 
                  InputShape= (10,100), 
                  Widths=[10],
-                 EncodeActivation="relu",
-                 DecodeActivation="sigmoid",
-                 Loss="adadelta",
+                 EncodeActivation="tanh",
+                 DecodeActivation="tanh",
+                 Loss="mse",
                  Optimizer="binary_crossentropy"):
         super(LSTMAutoEncoder,self).__init__(Name,Loss,Optimizer)
 
@@ -65,15 +65,18 @@ class LSTMAutoEncoder(ModelWrapper):
         # Encode
         for i in range(0,len(self.Widths)):
             print "Adding Encoder",i,self.Widths[i]
-            myModel = LSTM(self.Widths[i],consume_less="gpu")(myModel)
-            myModel = RepeatVector(self.InputShape[0])(myModel)
+            myModel = LSTM(self.Widths[i],consume_less="gpu",
+                           activation=self.EncodeActivation,
+                           return_sequences=True)(myModel)
+#            myModel = RepeatVector(self.InputShape[0])(myModel)
 
         # Decode
-        for i in range(len(self.Widths)-1,0, -1):
-            myModel = LSTM(self.Widths[i],consume_less="gpu",return_sequences=True)(myModel)
-
         for i in range(len(self.Widths)-1,-1, -1):
-            myModel = LSTM(self.InputShape[1],consume_less="gpu",return_sequences=True)(myModel)
+            myModel = LSTM(self.Widths[i],consume_less="gpu",
+                           activation=self.DecodeActivation,
+                           return_sequences=True)(myModel)
+
+        myModel = LSTM(self.InputShape[1],consume_less="gpu",return_sequences=True)(myModel)
 
         self.Model = Model(input=myInput, output=myModel)
 
@@ -85,7 +88,7 @@ class LSTMAutoEncoder2(ModelWrapper):
                  DecodeActivation="sigmoid",
                  Loss="adadelta",
                  Optimizer="binary_crossentropy"):
-        super(LSTMAutoEncoder,self).__init__(Name,Loss,Optimizer)
+        super(LSTMAutoEncoder2,self).__init__(Name,Loss,Optimizer)
 
         self.InputShape=self.MetaData["InputShape"]=InputShape
         self.Widths=self.MetaData["Widths"]=Widths
@@ -96,17 +99,19 @@ class LSTMAutoEncoder2(ModelWrapper):
         # Input
         print self.InputShape
         myInput = Input(shape=self.InputShape)
-        myModel = myInput
+        encoder = myInput
 
         # Encode
         for i in range(0,len(self.Widths)):
             print "Adding Encoder",i,self.Widths[i]
-            myModel = LSTM(self.Widths[i])(myModel)
-#            myModel = RepeatVector(self.InputShape[0])(myModel)
+            encoder = LSTM(self.Widths[i],return_sequences=True)(encoder)
+
+            ##        myModel = RepeatVector(self.InputShape[0])(myModel)
 
         # Decode
+        decoder = encoder
         for i in range(len(self.Widths)-1,0, -1):
-            myModel = LSTM(self.Widths[i],return_sequences=True)(myModel)
+            decoder = LSTM(self.Widths[i],return_sequences=True)(decoder)
 
         # Reconstruct output
         for i in range(len(self.Widths)-1,-1, -1):
